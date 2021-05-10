@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const { getEngine, getCockpit } = require('../engine');
+const { compare_blueprints } = require('../utils/compare_blueprints');
 
 const saveWorkflow = async (ctx, next) => {
 	console.log('[KW] Called saveWorkflow');
@@ -16,6 +17,8 @@ const saveWorkflow = async (ctx, next) => {
 		ctx.status = 400;
 		ctx.body = { message: `Failed at ${err.message}`, error: err };
 	}
+
+	return next();
 };
 
 const getWorkflowsForActor = async (ctx, next) => {
@@ -30,6 +33,8 @@ const getWorkflowsForActor = async (ctx, next) => {
 		delete result.blueprint_spec;
 		return result;
 	});
+
+	return next();
 };
 
 const fetchWorkflow = async (ctx, next) => {
@@ -44,6 +49,8 @@ const fetchWorkflow = async (ctx, next) => {
 	} else {
 		ctx.status = 404;
 	}
+
+	return next();
 };
 
 const fetchWorkflowByName = async (ctx, next) => {
@@ -58,6 +65,8 @@ const fetchWorkflowByName = async (ctx, next) => {
 	} else {
 		ctx.status = 404;
 	}
+
+	return next();
 };
 
 const deleteWorkflow = async (ctx, next) => {
@@ -71,6 +80,8 @@ const deleteWorkflow = async (ctx, next) => {
 	} else {
 		ctx.status = 204;
 	}
+
+	return next();
 };
 
 const fetchWorkflowProcessList = async (ctx, next) => {
@@ -86,6 +97,8 @@ const fetchWorkflowProcessList = async (ctx, next) => {
 		delete result.blueprint_spec;
 		return result;
 	});
+
+	return next();
 };
 
 const createProcess = async (ctx, next) => {
@@ -105,6 +118,8 @@ const createProcess = async (ctx, next) => {
 	} else {
 		ctx.status = 404;
 	}
+
+	return next();
 };
 
 const createProcessByName = async (ctx, next) => {
@@ -124,6 +139,8 @@ const createProcessByName = async (ctx, next) => {
 	} else {
 		ctx.status = 404;
 	}
+
+	return next();
 };
 
 const createAndRunProcessByName = async (ctx, next) => {
@@ -144,9 +161,12 @@ const createAndRunProcessByName = async (ctx, next) => {
 	} else {
 		ctx.status = 404;
 	}
+
+	return next();
+
 };
 
- const validateBlueprint = async(ctx,next) => {
+const validateBlueprint = async(ctx, next) => {
 	console.log('[KW] Called validateBlueprint');
 
 	const engine = getEngine();
@@ -165,72 +185,52 @@ const createAndRunProcessByName = async (ctx, next) => {
 			message: `Failed at ${err.message}`
 		};
 	}
+
+	return next();
 }
 
 const compareBlueprint = async(ctx,next) => {
 	console.log('[KW] Called compareBlueprint');
 
-	const engine = getEngine();
 	const { name, blueprint_spec } = ctx.request.body;
 
 	try {
-		await engine.validateBlueprint(blueprint_spec);
-
-		const current_workflow = await engine.fetchWorkflowByName(name);
-
-		if(current_workflow) {
-			const cur_wf_ordered_nodes = current_workflow.blueprint_spec.nodes.sort((a,b) => { return a.id > b.id ? -1 : 0 });
-			const bp_ordered_nodes = blueprint_spec.nodes.sort((a,b) => { return a.id > b.id ? -1 : 0 })
-			
-			const cur_wf_ordered_lanes = current_workflow.blueprint_spec.lanes.sort((a,b) => { return a.id > b.id ? -1 : 0 });
-			const bp_ordered_lanes = blueprint_spec.lanes.sort((a,b) => { return a.id > b.id ? -1 : 0 })
-		
-			const nodes = _.isEqual(cur_wf_ordered_nodes,bp_ordered_nodes);
-			const lanes = _.isEqual(cur_wf_ordered_lanes,bp_ordered_lanes);
-			const prepare = _.isEqual(current_workflow.blueprint_spec.prepare,blueprint_spec.prepare);
-			const environment = _.isEqual(current_workflow.blueprint_spec.environment,blueprint_spec.environment);
-			const requirements = _.isEqual(current_workflow.blueprint_spec.requirements,blueprint_spec.requirements);
-		
-			if(nodes && lanes && prepare && environment && requirements) {
-				ctx.status = 200,
-				ctx.body = {
-					status: "No changes found",
-					current_workflow: {
-						id: current_workflow._id,
-						version: current_workflow._version,
-					}
-				};
-			} else {
+		const compare = await compare_blueprints(name, blueprint_spec);
+		if(compare.error) {
+			ctx.status = 400;
+			ctx.body = { 
+				error: 'Invalid blueprint',
+				message: `Failed at ${compare.error}`
+			};
+		} else if (compare.changes) {
+			if(compare.current_workflow) {
 				ctx.status = 202;
 				ctx.body = {
 					status: "Changes found, check comparison",
-					current_workflow: {
-						id: current_workflow._id,
-						version: current_workflow._version,
-					},
-					comparison: {
-						nodes: nodes,
-						lanes: lanes,
-						prepare: prepare,
-						environment: environment,
-						requirements: requirements
-					}
+					current_workflow: compare.current_workflow,
+					comparison: compare.comparison
+				};
+			} else {
+				ctx.status = 404,
+				ctx.body = {
+					status: "No workflow with this name"
 				};
 			}
 		} else {
-			ctx.status = 404,
+			ctx.status = 200,
 			ctx.body = {
-				status: "No workflow with this name"
+				status: "No changes found",
+				current_workflow: compare.current_workflow,
 			};
-		}
-		
+		}		
 	} catch (err) {
-		ctx.status = 400;
+		ctx.status = 500;
 		ctx.body = { 
-			error: 'Invalid blueprint',
-			message: `Failed at ${err.message}`
+			error: err
 		};
 	}
+
+	return next();
 }
 
 module.exports = {

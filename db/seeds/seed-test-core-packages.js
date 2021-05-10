@@ -1,4 +1,4 @@
-const { v1:uuid } = require("uuid");
+const uuid = require("uuid/v1");
 const { test_workflow_package } = require("./packages/test_package");
 
 exports.seed = function(knex, Promise) {

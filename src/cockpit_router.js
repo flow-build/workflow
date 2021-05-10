@@ -30,6 +30,7 @@ module.exports = (opts = {}) => {
 
      router.post("/workflows/validate", wv.saveWorkflow, wc.validateBlueprint);
      router.post("/workflows/compare", wv.saveWorkflow, wc.compareBlueprint);
+     router.post("/workflows/update", cockpit_controller.updateDeploy);
 
      router.post("/processes/:id/state", validateUUID, cockpit_validator.validateSetProcessState, cockpit_controller.setProcessState);
      router.post("/processes/:id/state/run", validateUUID, cockpit_controller.runPendingProcess);

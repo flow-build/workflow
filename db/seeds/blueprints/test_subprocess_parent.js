@@ -34,8 +34,7 @@ module.exports = {
         }, {
             id: "3",
             name: "start subProcess",
-            type: "systemTask",
-            category: "subProcess",
+            type: "subProcess",
             lane_id: "free",
             next: '4',
             parameters: {

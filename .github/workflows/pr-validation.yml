@@ -34,12 +34,15 @@ jobs:
       - name: run migrations
         run: |
           npm install -g knex
-          knex --env docker migrate:latest
+          knex --env test migrate:latest
+
+      - name: run seeds
+        run: knex --env test seed:run
 
       - name: start tests
         run: npm run tests
         env: 
-          NODE_ENV: docker
+          NODE_ENV: test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

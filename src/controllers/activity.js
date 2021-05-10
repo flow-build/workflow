@@ -18,6 +18,33 @@ const fetchAvailableActivitiesForActor = async (ctx, next) => {
 	ctx.body = tasks;
 };
 
+const fetchAvailableActivitiesForActorReduced = async (ctx, next) => {
+	console.log('[KW] Called fetchAvailableActivitiesForActor');
+
+	const cockpit = getCockpit();
+	const actor_data = ctx.state.actor_data;
+	const query_params = ctx.request.query;
+	const workflow_id = query_params.workflow_id;
+	const filters = workflow_id ? { workflow_id: query_params.workflow_id } : {};
+	let tasks = await cockpit.fetchAvailableActivitiesForActor(actor_data, filters);
+	tasks = tasks.filter(e => (['finished','interrupted','pending'].indexOf(e.process_status)) < 0).map((task) => {
+		let response = {
+			activity_manager_id: task.id,
+			process_id: task.process_id,
+			workflow_id: task.workflow_id,
+			created_at: task.created_at,
+			type: task.type,
+			workflow_name: task.workflow_name,
+			process_status: task.process_status,
+			node_name: task.blueprint_spec.nodes.find(e => e.id === task.node_id).name,
+			action: task.props.action
+		}
+		return response;
+	});
+	ctx.status = 200;
+	ctx.body = tasks;
+};
+
 const fetchDoneActivitiesForActor = async (ctx, next) => {
 	console.log('[KW] Called fetchDoneActivitiesForActor');
 
@@ -128,8 +155,8 @@ const commitByActivityManagerId = async (ctx, next) => {
 	const activity_manager_id = ctx.params.activity_manager_id;
 	const activity_manager = await engine.fetchActivityManager(activity_manager_id, actor_data);
 
-	console.log("am:",activity_manager);
-	console.log("process_id:",activity_manager.process_id);
+	//console.log("am:",activity_manager);
+	//console.log("process_id:",activity_manager.process_id);
 
 	const cockpit = getCockpit();
 	const process_id = activity_manager.process_id;
@@ -177,7 +204,7 @@ const submitByActivityManagerId = async (ctx, next) => {
 				ctx.body = result.error;
 				break;
 			case 'submitActivity':
-				ctx.status = 406;
+				ctx.status = 422;
 				ctx.body = result.error;
 				break;
 			default:
@@ -190,6 +217,7 @@ const submitByActivityManagerId = async (ctx, next) => {
 
 module.exports = {
 	fetchAvailableActivitiesForActor,
+	fetchAvailableActivitiesForActorReduced,
 	fetchDoneActivitiesForActor,
 	fetchActivityByActivityManagerId,
 	fetchActivity,

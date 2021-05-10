@@ -1,7 +1,7 @@
 const lodash = require("lodash");
-const { v1:uuid } = require("uuid");
+const uuid = require("uuid/v1");
 const { setEngine, setCockpit } = require("../engine");
-const { Engine, Cockpit } = require("@flowbuild/engine");
+const { Engine, Cockpit } = require('@flowbuild/engine');
 const { db } = require("./utils/db");
 const { startServer } = require("../app");
 const { actor_data, valid_token } = require("./utils/samples");

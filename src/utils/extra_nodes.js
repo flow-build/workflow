@@ -1,4 +1,4 @@
-const { v1:uuid } = require("uuid");
+const uuid = require("uuid/v1");
 const { Nodes } = require("@flowbuild/engine");
 
 const SystemTaskNode = Nodes.SystemTaskNode;

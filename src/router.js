@@ -11,6 +11,7 @@ const pv = require("./validators/process");
 const tc = require("./controllers/token");
 const hc = require("./controllers/health-check");
 const cors = require('koa2-cors');
+const dg = require("./controllers/diagram");
 
 module.exports = (opts = {}) => {
      const router = new Router();
@@ -50,6 +51,8 @@ module.exports = (opts = {}) => {
           .delete("/workflows/:id",
                validateUUID,
                wc.deleteWorkflow)
+          .post("/workflows/diagram",
+               dg.buildDiagram)
           .post("/workflows/:id/create",
                validateUUID,
                wv.createProcess,
@@ -60,6 +63,8 @@ module.exports = (opts = {}) => {
                wc.createAndRunProcessByName
           )
 
+          .get("/activities/available",
+               ac.fetchAvailableActivitiesForActorReduced)
           .get("/processes/activityManager/:id",
                validateUUID,
                ac.fetchActivityByActivityManagerId)
